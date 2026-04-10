@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Eye, EyeOff, Wand2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -14,6 +15,35 @@ const SleekInput = ({ label, ...p }: any) => (
     </label>
   </div>
 );
+
+const PasswordInput = ({ label, value, onChange, onKeyDown, onGenerate }: any) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="w-full relative group mt-4 flex items-center">
+      <input 
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
+        className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 pt-6 text-white placeholder-transparent focus:outline-none focus:border-cyan-400 focus:bg-white/[0.05] transition-all peer font-sans text-sm pr-20"
+        placeholder={label}
+      />
+      <label className="absolute left-4 top-2 text-[10px] uppercase font-bold tracking-widest text-white/40 peer-focus:text-cyan-400 peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:top-2 peer-focus:text-[10px] peer-focus:uppercase peer-focus:tracking-widest transition-all pointer-events-none">
+        {label}
+      </label>
+      <div className="absolute right-3 flex items-center gap-1 z-20">
+        {onGenerate && (
+          <button type="button" onClick={onGenerate} className="text-white/40 hover:text-cyan-400 transition-colors p-1.5" title="Generar Contraseña Segura">
+             <Wand2 size={16} />
+          </button>
+        )}
+        <button type="button" onClick={() => setShow(!show)} className="text-white/40 hover:text-white transition-colors p-1.5">
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Btn = ({ children, onClick, className, disabled, variant = "primary", ...p }: any) => {
   const base = "w-full py-4 rounded-lg font-bold text-sm tracking-wide transition-all duration-300 flex items-center justify-center relative overflow-hidden";
@@ -94,31 +124,23 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
     }
     setLoading(true); setError("");
     try {
-      // Intento de Login a través del sistema de perfiles simple (migración) o auth
-      // Primero buscaremos si tienen password grabado simple en profiles
-      const { data: contact } = await supabase.from('profiles').select('*').eq('email', loginEmail.trim()).maybeSingle();
-      if (!contact) {
-        setError("Email no registrado. Regístrate primero.");
-        setLoading(false);
-        return;
-      }
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword
+      });
+      if (authError) throw authError;
+      if (!data.user) throw new Error("Error obteniendo sesión.");
 
-      // Verificación de credenciales robusta.
-      // Si la tabla profile ya soporta el campo password, se verifica directamente.
-      // (Asumiendo que el usuario quiere validación en la misma tabla de profiles por su comentario).
-      if (contact.password && contact.password !== loginPassword) {
-         setError("Contraseña incorrecta.");
-         setLoading(false);
-         return;
-      } else if (!contact.password) {
-         // Si es un usuario viejo sin password, y está intentando acceder
-         // Para la migración suave: lo dejamos pasar o le obligamos a registrar password.
-         // Lo dejamos pasar si el sistema no tenía password anteriormente, pero lo marcamos.
-      }
+      const { data: contact } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
 
-      const u = { id: contact.id, name: `${contact.full_name || ""}`.trim() || contact.email, email: contact.email, profession: contact.profession || "" };
+      const u = { 
+        id: data.user.id, 
+        name: contact?.full_name || contact?.email || data.user.email, 
+        email: data.user.email, 
+        profession: contact?.profession || "" 
+      };
       onLogin(u);
-    } catch (err: any) { setError(`Error interno: ${err.message}`) }
+    } catch (err: any) { setError(`Credenciales inválidas o error de red.`); console.error(err); }
     setLoading(false);
   };
 
@@ -129,33 +151,31 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
     }
     setLoading(true); setError("");
     try {
-      const { data: existing } = await supabase.from('profiles').select('id').eq('email', regEmail.trim()).maybeSingle();
-      if (existing) {
-        setError("Este email ya está registrado. Inicia sesión.");
-        setLoading(false);
-        return;
-      }
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: regEmail.trim(),
+        password: regPassword,
+        options: {
+           data: {
+             full_name: regName.trim(),
+             profession: regProf.trim()
+           }
+        }
+      });
+      
+      if (signUpError) throw signUpError;
+      if (!data.user) throw new Error("Error creando usuario.");
 
-      const { data: newP, error: insertError } = await supabase.from('profiles').insert([{ 
-         full_name: regName.trim(), 
-         email: regEmail.trim(), 
-         profession: regProf.trim(),
-         password: regPassword // Se guarda en la estructura actual (requiere columna password en DB)
-      }]).select().single();
-
-      if (insertError) {
-         if (insertError.code === "42703") { // Columna no encontrada supabase
-             setError("Error de base de datos: Debes crear la columna 'password' (tipo text) en la tabla 'profiles'.");
-             setLoading(false);
-             return;
-         }
-         throw insertError;
-      }
-
-      const u = { id: newP.id, name: newP.full_name, email: newP.email, profession: newP.profession };
+      const u = { id: data.user.id, name: regName.trim(), email: regEmail.trim(), profession: regProf.trim() };
       onLogin(u);
     } catch (err: any) { setError(`Error: ${err.message}`) }
     setLoading(false);
+  };
+
+  const generateSecurePassword = () => {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+      let p = "";
+      for(let i = 0; i < 16; i++) p += chars.charAt(Math.floor(Math.random() * chars.length));
+      setRegPassword(p);
   };
 
   return (
@@ -221,7 +241,7 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
                     className="flex flex-col gap-4"
                   >
                     <SleekInput label="Correo Electrónico" type="email" value={loginEmail} onChange={(e: any) => setLoginEmail(e.target.value)} />
-                    <SleekInput label="Contraseña" type="password" value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} onKeyDown={(e: any) => e.key === "Enter" && handleLogin()} />
+                    <PasswordInput label="Contraseña" value={loginPassword} onChange={(e: any) => setLoginPassword(e.target.value)} onKeyDown={(e: any) => e.key === "Enter" && handleLogin()} />
                     
                     {error && <div className="p-3 mt-2 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium">{error}</div>}
                     
@@ -242,7 +262,7 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
                   >
                     <SleekInput label="Nombre Completo" value={regName} onChange={(e: any) => setRegName(e.target.value)} />
                     <SleekInput label="Correo Electrónico" type="email" value={regEmail} onChange={(e: any) => setRegEmail(e.target.value)} />
-                    <SleekInput label="Contraseña" type="password" value={regPassword} onChange={(e: any) => setRegPassword(e.target.value)} />
+                    <PasswordInput label="Contraseña" value={regPassword} onChange={(e: any) => setRegPassword(e.target.value)} onGenerate={generateSecurePassword} />
                     <SleekInput label="Ocupación (Ej: Trader)" value={regProf} onChange={(e: any) => setRegProf(e.target.value)} onKeyDown={(e: any) => e.key === "Enter" && handleRegister()} />
                     
                     {error && <div className="p-3 mt-4 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium">{error}</div>}
