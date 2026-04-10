@@ -113,10 +113,15 @@ export default function App(){
       }catch(e){
         console.error("[App] Error loading user:", e);
       }
+      if(!hasUser){
+         const dummy = {id: "00000000-0000-0000-0000-000000000000", name: "Usuario Demo", email: "demo@ingresarios.com", profession: "Trader"};
+         setUser(dummy);
+         hasUser = true;
+      }
       try{const g=localStorage.getItem("cobro-goal");if(g)setGoal(Number(g))}catch{}
       await loadShared();
       setTimeout(()=>setSplashOp(1),100);
-      setTimeout(()=>{setSplashOp(0);setTimeout(()=>setScreen(hasUser?"main":"login"),600)},2800);
+      setTimeout(()=>{setSplashOp(0);setTimeout(()=>setScreen("main"),600)},2800);
     })();
   },[]);
 
