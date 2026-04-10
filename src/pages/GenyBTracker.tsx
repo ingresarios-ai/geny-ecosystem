@@ -65,13 +65,11 @@ const StatusBadge=({status,msg,onClose}: any)=>{
 
 export default function App(){
   const navigate = useNavigate();
-  const [screen,setScreen]=useState("splash");
+  const [screen,setScreen]=useState("main");
   const [user,setUser]=useState<any>(null); // {name,email,ghlContactId}
   const [entries,setEntries]=useState<any[]>([]);
   const [allEntries,setAllEntries]=useState<any[]>([]);
   const [allUsers,setAllUsers]=useState<any[]>([]);
-  const [loginEmail,setLoginEmail]=useState("");
-  const [regName,setRegName]=useState("");const [regEmail,setRegEmail]=useState("");const [regProf,setRegProf]=useState("");
   const [amount,setAmount]=useState("");
   const [view,setView]=useState("dia");
   const [goal,setGoal]=useState(20000);
@@ -79,49 +77,25 @@ export default function App(){
   const [checkinMode,setCheckinMode]=useState<"gain"|"loss">("gain");
   const [animPct,setAnimPct]=useState(0);
   const [syncSt,setSyncSt]=useState("idle");const [syncMsg,setSyncMsg]=useState("");
-  const [splashOp,setSplashOp]=useState(0);
   const [adminPass,setAdminPass]=useState("");
   const [adminView,setAdminView]=useState("consolidated");
   const [selectedUser,setSelectedUser]=useState<any>(null);
   const [adminPeriod,setAdminPeriod]=useState("dia");
-  const [loginLoading,setLoginLoading]=useState(false);
-  const [loginError,setLoginError]=useState("");
-  const [loginMode,setLoginMode]=useState("login"); // login | register
 
   // === LOAD ===
   useEffect(()=>{
-    console.log("[App] useEffect Load starting...");
     (async()=>{
-      let hasUser=false;
-      try{
-        console.log("[App] Checking for stored user...");
+      try {
         const u = localStorage.getItem("cobro-user");
         if(u){
           const parsed = JSON.parse(u);
-          // fetch from supabase to verify
-          const {data: prof} = await supabase.from('profiles').select('*').eq('email', parsed.email).maybeSingle();
-          if (prof) {
-              const fullU = {id: prof.id, name: prof.full_name, email: prof.email, profession: prof.profession};
-              setUser(fullU);
-              localStorage.setItem("cobro-user", JSON.stringify(fullU));
-              hasUser=true;
-              
-              const {data: myE} = await supabase.from('entries').select('*').eq('user_id', prof.id);
-              if (myE) setEntries(myE);
-          }
+          setUser(parsed);
+          const {data: myE} = await supabase.from('entries').select('*').eq('user_id', parsed.id);
+          if (myE) setEntries(myE);
         }
-      }catch(e){
-        console.error("[App] Error loading user:", e);
-      }
-      if(!hasUser){
-         const dummy = {id: "00000000-0000-0000-0000-000000000000", name: "Usuario Demo", email: "demo@ingresarios.com", profession: "Trader"};
-         setUser(dummy);
-         hasUser = true;
-      }
-      try{const g=localStorage.getItem("cobro-goal");if(g)setGoal(Number(g))}catch{}
+      } catch(e) {}
+      try { const g=localStorage.getItem("cobro-goal"); if(g) setGoal(Number(g)) } catch{}
       await loadShared();
-      setTimeout(()=>setSplashOp(1),100);
-      setTimeout(()=>{setSplashOp(0);setTimeout(()=>setScreen("main"),600)},2800);
     })();
   },[]);
 
@@ -135,39 +109,7 @@ export default function App(){
     }catch{}
   };
 
-  const handleLogin=async()=>{
-    if(!loginEmail.trim())return;
-    setLoginLoading(true);setLoginError("");
-    try{
-      const {data: contact} = await supabase.from('profiles').select('*').eq('email', loginEmail.trim()).maybeSingle();
-      if(!contact){setLoginError("Email no registrado. ¿Eres nuevo? Regístrate primero.");setLoginLoading(false);return}
-      const u={id: contact.id, name:`${contact.full_name||""}`.trim()||contact.email,email:contact.email,profession:contact.profession||""};
-      setUser(u);localStorage.setItem("cobro-user",JSON.stringify(u));
-      setLoginEmail("");setScreen("main");
-      const {data: myE} = await supabase.from('entries').select('*').eq('user_id', u.id);
-      if(myE) setEntries(myE);
-      await loadShared();
-    }catch(err: any){setLoginError(`Error intern: ${err.message}`)}
-    setLoginLoading(false);
-  };
 
-  const handleRegister=async()=>{
-    if(!regName.trim()||!regEmail.trim()||!regProf.trim())return;
-    setLoginLoading(true);setLoginError("");
-    try{
-      const {data: existing} = await supabase.from('profiles').select('id').eq('email', regEmail.trim()).maybeSingle();
-      if(existing){setLoginError("Este email ya está registrado. Inicia sesión.");setLoginLoading(false);return}
-      
-      const {data: newP, error} = await supabase.from('profiles').insert([{full_name: regName.trim(), email: regEmail.trim(), profession: regProf.trim()}]).select().single();
-      if (error) throw error;
-      
-      const u={id: newP.id, name:newP.full_name,email:newP.email,profession:newP.profession};
-      setUser(u);localStorage.setItem("cobro-user",JSON.stringify(u));
-      setEntries([]);
-      setRegName("");setRegEmail("");setRegProf("");setScreen("main");await loadShared();
-    }catch(err: any){setLoginError(`Error: ${err.message}`)}
-    setLoginLoading(false);
-  };
 
   const myTotal=entries.filter(e=>e.date===td()).reduce((s,e)=>s+e.amount,0);
   const globalTotal=allEntries.filter(e=>e.date===td()).reduce((s,e)=>s+e.amount,0);
@@ -180,7 +122,20 @@ export default function App(){
     const now=new Date();
     const ts = now.getTime();
     const entry={user_id: user.id, amount:finalAmount,date:td(),time:now.toLocaleTimeString("es-CO",{timeZone:"America/Bogota",hour:"2-digit",minute:"2-digit"}),ts};
+    
+    if (user.id === "00000000-0000-0000-0000-000000000000") {
+      const mockData = { ...entry, id: `mock-${Date.now()}` };
+      setEntries([...entries, mockData]);
+      setAllEntries([...allEntries, { ...mockData, userEmail: user.email, userName: user.name }]);
+      setAmount("");setShowCheckin(false);setCheckinMode("gain");
+      return;
+    }
+
     const {data, error} = await supabase.from('entries').insert([entry]).select().single();
+    if (error) {
+      console.error("Error inserting entry:", error);
+      alert("Hubo un error al guardar tu registro en la base de datos.");
+    }
     if (!error && data) {
          setEntries([...entries,data]);
          setAllEntries([...allEntries, {...data, userEmail: user.email, userName: user.name}]);
@@ -259,69 +214,7 @@ export default function App(){
     </div>
   );
 
-  if(screen==="splash")return(
-    <div className="relative z-10 pt-32 pb-24 flex flex-col items-center justify-center w-full min-h-[60vh] transition-opacity duration-800" style={{opacity:splashOp}}>
-      <Logo size="lg"/>
-      <div className="mt-10 flex gap-2">
-        {[0, 1, 2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-cyan-400" style={{ animation: `pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
-      </div>
-      <div className="mt-4 text-xs text-white/50 tracking-widest uppercase">INICIANDO SISTEMA</div>
-    </div>
-  );
 
-  if(screen==="login")return(
-    <div className="relative z-10 pt-32 pb-24 flex flex-col items-center justify-center w-full px-4">
-      <div className="w-full max-w-[420px]">
-        <div className="mb-8"><Logo size="lg"/></div>
-        <div className="glass-panel rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.6)] border-white/5 bg-black/40">
-          {/* Toggle login/register */}
-          <div className="flex gap-2 mb-6 bg-black/20 rounded-xl p-1 border border-white/5">
-            <Btn onClick={()=>{setLoginMode("login");setLoginError("")}} className={`flex-1 ${loginMode==="login"?"bg-cyan-500/20 text-cyan-400 shadow-[inset_0_1px_rgba(255,255,255,0.1)]":"bg-transparent text-white/50"}`}>
-              Iniciar Sesión
-            </Btn>
-            <Btn onClick={()=>{setLoginMode("register");setLoginError("")}} className={`flex-1 ${loginMode==="register"?"bg-emerald-500/20 text-emerald-400 shadow-[inset_0_1px_rgba(255,255,255,0.1)]":"bg-transparent text-white/50"}`}>
-              Registrarse
-            </Btn>
-          </div>
-
-          {loginMode==="login"?(
-            <div className="flex flex-col gap-4">
-              <div className="text-center mb-2">
-                <div className="text-3xl mb-2">👋</div>
-                <p className="text-white/50 text-sm m-0">Ingresa tu email registrado</p>
-              </div>
-              <Input label="Email" value={loginEmail} onChange={(e:any)=>setLoginEmail(e.target.value)} placeholder="tu@email.com" type="email" onKeyDown={(e:any)=>e.key==="Enter"&&handleLogin()}/>
-              {loginError&&<div className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold">{loginError}</div>}
-              <Btn onClick={handleLogin} disabled={loginLoading} className="w-full py-4 mt-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-base shadow-[0_0_20px_rgba(34,211,238,0.2)]">
-                {loginLoading?"Verificando...":"Entrar 🚀"}
-              </Btn>
-            </div>
-          ):(
-            <div className="flex flex-col gap-4">
-              <div className="text-center mb-5">
-                <div className="text-3xl mb-3">✨</div>
-                <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4 mx-auto max-w-[320px] shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
-                  <p className="text-cyan-400 text-xs font-bold leading-relaxed m-0">
-                    💡 IMPORTANTE: Usa el mismo correo con el que te inscribiste al entrenamiento para vincular tu progreso.
-                  </p>
-                </div>
-              </div>
-              <Input label="Nombre completo" value={regName} onChange={(e:any)=>setRegName(e.target.value)} placeholder="Tu nombre completo"/>
-              <Input label="Email" value={regEmail} onChange={(e:any)=>setRegEmail(e.target.value)} placeholder="tu@email.com" type="email"/>
-              <Input label="Profesión" value={regProf} onChange={(e:any)=>setRegProf(e.target.value)} placeholder="Ej: Trader, Empresario..." onKeyDown={(e:any)=>e.key==="Enter"&&handleRegister()}/>
-              {loginError&&<div className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-semibold">{loginError}</div>}
-              <Btn onClick={handleRegister} disabled={loginLoading} className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white font-bold text-base shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                {loginLoading?"Creando cuenta...":"Registrarme ✨"}
-              </Btn>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-3 justify-center mt-6">
-          <Btn onClick={()=>setScreen("adminlogin")} className="bg-black/20 text-white/40 text-xs px-4 py-2 border border-white/10 hover:text-white/60">🔐 Admin</Btn>
-        </div>
-      </div>
-    </div>
-  );
 
   if(screen==="adminlogin")return(
     <div className="relative z-10 pt-32 pb-24 flex flex-col items-center justify-center w-full px-4">
@@ -338,7 +231,7 @@ export default function App(){
             <Btn onClick={handleAdminLogin} className="w-full py-4 mt-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-base shadow-[0_0_20px_rgba(139,92,246,0.3)]">
               Acceder 🛡️
             </Btn>
-            <Btn onClick={()=>setScreen("login")} className="py-2 mt-2 bg-transparent border border-white/10 text-white/50 hover:bg-white/5 text-sm">
+            <Btn onClick={()=>setScreen("main")} className="py-2 mt-2 bg-transparent border border-white/10 text-white/50 hover:bg-white/5 text-sm">
               ← Volver
             </Btn>
           </div>
@@ -368,7 +261,7 @@ export default function App(){
           </div>
           <div className="flex gap-2">
             <Btn onClick={()=>setScreen("ghlsetup")} className="bg-transparent border border-white/10 text-white/50 hover:bg-white/5 px-2 py-1">⚙️</Btn>
-            <Btn onClick={()=>{setScreen("login");setAdminPass("")}} className="bg-transparent border border-white/10 text-white/50 hover:bg-white/5 text-xs px-3">Salir</Btn>
+            <Btn onClick={()=>{setScreen("main");setAdminPass("")}} className="bg-transparent border border-white/10 text-white/50 hover:bg-white/5 text-xs px-3">Salir</Btn>
           </div>
         </div>
 
@@ -600,6 +493,12 @@ export default function App(){
         </div>
       </div>
       
+      {/* Botón hacia Dashboard de Admin (solo visible/estético, para que el usuario conozca la funcionalidad) */}
+      <div className="flex justify-center mt-16 mb-4">
+        <Btn onClick={()=>setScreen("adminlogin")} className="bg-black/20 text-white/20 text-[10px] px-4 py-2 hover:bg-black/40 hover:text-white/40 uppercase tracking-widest font-mono">
+          🔐 Acceso Restringido Admin
+        </Btn>
+      </div>
     </main>
   );
 }
