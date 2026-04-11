@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { TrendingUp, TrendingDown, X } from 'lucide-react';
@@ -36,17 +36,36 @@ const maskName = (name: string): string => {
   return `${name.slice(0, Math.ceil(name.length * 0.6))}...`;
 };
 
+// Fisher-Yates shuffle (one-time randomization)
+const shuffle = <T,>(arr: T[]): T[] => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
 export default function FomoNotifications() {
   const [notifications, setNotifications] = useState<FomoEntry[]>([]);
   const [currentNotif, setCurrentNotif] = useState<FomoEntry | null>(null);
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Refs for stable sequential cycling inside timeouts
+  const indexRef = useRef(0);
+  const dismissedRef = useRef(false);
+  const notifsRef = useRef<FomoEntry[]>([]);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Keep refs in sync
+  useEffect(() => { dismissedRef.current = dismissed; }, [dismissed]);
+  useEffect(() => { notifsRef.current = notifications; }, [notifications]);
 
   // Fetch recent entries from non-admin users
   const fetchEntries = useCallback(async () => {
     try {
-      // Get admin user IDs to exclude
       const { data: admins } = await supabase
         .from('profiles')
         .select('id')
@@ -54,7 +73,6 @@ export default function FomoNotifications() {
 
       const adminIds = (admins || []).map(a => a.id);
 
-      // Get all profiles for name mapping
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email');
@@ -64,7 +82,6 @@ export default function FomoNotifications() {
         profileMap[p.id] = p.full_name || p.email?.split('@')[0] || 'Usuario';
       });
 
-      // Get recent entries, excluding admins
       const { data: recentEntries } = await supabase
         .from('entries')
         .select('id, user_id, amount, date, created_at')
@@ -82,9 +99,11 @@ export default function FomoNotifications() {
             timeAgo: getTimeAgo(e.created_at || e.date),
           }));
 
-        // Shuffle for variety
-        const shuffled = filtered.sort(() => Math.random() - 0.5);
+        // Shuffle once, then cycle sequentially
+        const shuffled = shuffle(filtered);
         setNotifications(shuffled);
+        notifsRef.current = shuffled;
+        indexRef.current = 0;
       }
     } catch (err) {
       console.error('FOMO fetch error:', err);
@@ -93,43 +112,59 @@ export default function FomoNotifications() {
 
   useEffect(() => {
     fetchEntries();
-    // Refresh data every 5 minutes
     const interval = setInterval(fetchEntries, 300000);
     return () => clearInterval(interval);
   }, [fetchEntries]);
 
-  // Cycle through notifications
+  // Sequential cycling with random delays
+  const scheduleNext = useCallback(() => {
+    if (dismissedRef.current || notifsRef.current.length === 0) return;
+
+    const delay = 8000 + Math.random() * 7000; // 8-15s random gap
+    showTimerRef.current = setTimeout(() => {
+      if (dismissedRef.current || notifsRef.current.length === 0) return;
+
+      // Pick next in sequence
+      const idx = indexRef.current % notifsRef.current.length;
+      setCurrentNotif(notifsRef.current[idx]);
+      setVisible(true);
+      indexRef.current = idx + 1;
+
+      // Auto-hide after 5s, then schedule the next one
+      hideTimerRef.current = setTimeout(() => {
+        setVisible(false);
+        scheduleNext();
+      }, 5000);
+    }, delay);
+  }, []);
+
+  // Kick off the cycle once data is loaded
   useEffect(() => {
     if (notifications.length === 0 || dismissed) return;
 
-    // Initial delay before first notification (3-6 seconds)
-    const initialDelay = setTimeout(() => {
-      showNext();
-    }, 3000 + Math.random() * 3000);
+    // Initial delay 3-6s
+    const initDelay = 3000 + Math.random() * 3000;
+    showTimerRef.current = setTimeout(() => {
+      if (dismissedRef.current) return;
+      setCurrentNotif(notifsRef.current[0]);
+      setVisible(true);
+      indexRef.current = 1;
 
-    return () => clearTimeout(initialDelay);
-  }, [notifications, dismissed]);
+      hideTimerRef.current = setTimeout(() => {
+        setVisible(false);
+        scheduleNext();
+      }, 5000);
+    }, initDelay);
 
-  const showNext = () => {
-    if (notifications.length === 0 || dismissed) return;
-
-    const idx = currentIndex % notifications.length;
-    setCurrentNotif(notifications[idx]);
-    setVisible(true);
-    setCurrentIndex(prev => prev + 1);
-
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      setVisible(false);
-
-      // Schedule next notification (8-15 seconds gap)
-      setTimeout(() => {
-        showNext();
-      }, 8000 + Math.random() * 7000);
-    }, 5000);
-  };
+    return () => {
+      clearTimeout(showTimerRef.current);
+      clearTimeout(hideTimerRef.current);
+    };
+  }, [notifications, dismissed, scheduleNext]);
 
   const handleDismiss = () => {
+    clearTimeout(showTimerRef.current);
+    clearTimeout(hideTimerRef.current);
     setVisible(false);
     setDismissed(true);
   };
