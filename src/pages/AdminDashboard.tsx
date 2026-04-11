@@ -184,7 +184,7 @@ export default function AdminDashboard() {
          payload.password = editPass.trim();
       }
 
-      const url = import.meta.env.VITE_SUPABASE_URL || 'https://sozizuskspotnixujipj.supabase.co';
+      const url = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${url}/functions/v1/admin-users`, {
         method: "POST",
         headers: {

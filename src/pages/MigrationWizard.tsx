@@ -76,17 +76,14 @@ export default function MigrationWizard() {
     if (!email.trim()) { setError("Por favor ingresa tu correo."); return; }
     setError(""); setLookingUp(true);
     try {
-      // Look up legacy data to pre-fill and show count
+      // Secure RPC lookup - only returns count + first name/profession for this email
       const { data: legacyData } = await supabase
-        .from('legacy_entries')
-        .select('legacy_name, legacy_profession, amount')
-        .eq('legacy_email', email.trim().toLowerCase())
-        .eq('migrated', false);
+        .rpc('lookup_legacy_count', { p_email: email.trim().toLowerCase() });
 
-      if (legacyData && legacyData.length > 0) {
-        setLegacyCount(legacyData.length);
-        if (!name) setName(legacyData[0].legacy_name || "");
-        if (!profession) setProfession(legacyData[0].legacy_profession || "");
+      if (legacyData && legacyData.length > 0 && legacyData[0].entry_count > 0) {
+        setLegacyCount(legacyData[0].entry_count);
+        if (!name) setName(legacyData[0].first_name || "");
+        if (!profession) setProfession(legacyData[0].first_profession || "");
       } else {
         setLegacyCount(0);
       }
