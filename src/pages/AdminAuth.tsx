@@ -2,6 +2,25 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Shield, Eye, EyeOff } from "lucide-react";
 
+const BrandLogo = ({ align = "center" }: { align?: "left" | "right" | "center" }) => {
+  const al = align === "center" ? "items-center text-center" : align === "right" ? "items-end text-right" : "items-start text-left";
+  const m = align === "center" ? "" : align === "right" ? "mr-1" : "ml-1";
+  return (
+    <div className={`flex flex-col select-none ${al}`}>
+      <div className={`text-5xl lg:text-6xl font-black tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_20px_rgba(34,211,238,0.4)]`}>
+        GENY
+      </div>
+      <div className={`font-bold text-cyan-400 text-[11px] lg:text-[13px] tracking-[0.4em] uppercase mt-1 ${m}`}>
+        Ecosystem
+      </div>
+      <div className={`flex items-center gap-2 mt-4 opacity-80 ${m}`}>
+        <span className="text-[9px] font-mono tracking-[0.2em] text-white/50">BY</span>
+        <img src="/logo.png" alt="Ingresarios" className="h-4 lg:h-5 object-contain" />
+      </div>
+    </div>
+  );
+};
+
 export default function AdminAuth({ onLogin }: { onLogin: (user: any) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,14 +63,9 @@ export default function AdminAuth({ onLogin }: { onLogin: (user: any) => void })
       
       <div className="glass-panel p-8 md:p-10 rounded-3xl border border-red-500/20 max-w-sm w-full mx-4 z-10 shadow-[0_0_80px_rgba(220,38,38,0.1)] bg-black/60 backdrop-blur-xl">
         <div className="flex justify-center mb-8">
-          <img src="/logo.png" alt="GENY Ecosystem" className="h-6 object-contain opacity-80" />
+          <BrandLogo align="center" />
         </div>
 
-        <div className="flex justify-center mb-6">
-           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-900/20 border border-red-500/30 flex items-center justify-center text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
-             <Shield size={32} />
-           </div>
-        </div>
         <h1 className="text-2xl font-black text-white text-center mb-1 tracking-tight">RESTRICTED ACCESS</h1>
         <p className="text-red-400/60 text-[9px] text-center uppercase tracking-[0.2em] mb-8 font-mono">Admin Control Systems</p>
 
