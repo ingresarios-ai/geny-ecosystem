@@ -65,7 +65,8 @@ const StatusBadge=({status,msg,onClose}: any)=>{
 
 export default function App(){
   const navigate = useNavigate();
-  const [screen,setScreen]=useState("main");
+  const [screen,setScreen]=useState("splash");
+  const [splashOp, setSplashOp] = useState(0);
   const [user,setUser]=useState<any>(null); // {name,email,ghlContactId}
   const [entries,setEntries]=useState<any[]>([]);
   const [allEntries,setAllEntries]=useState<any[]>([]);
@@ -96,6 +97,8 @@ export default function App(){
       } catch(e) {}
       try { const g=localStorage.getItem("cobro-goal"); if(g) setGoal(Number(g)) } catch{}
       await loadShared();
+      setTimeout(()=>setSplashOp(1),100);
+      setTimeout(()=>{setSplashOp(0);setTimeout(()=>setScreen("main"),600)},2200);
     })();
   },[]);
 
@@ -214,6 +217,16 @@ export default function App(){
   );
 
 
+
+  if(screen==="splash")return(
+    <div className="relative z-10 pt-32 pb-24 flex flex-col items-center justify-center w-full min-h-[60vh] transition-opacity duration-800" style={{opacity:splashOp}}>
+      <Logo size="lg"/>
+      <div className="mt-10 flex gap-2">
+        {[0, 1, 2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-cyan-400" style={{ animation: `pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
+      </div>
+      <div className="mt-4 text-xs text-white/50 tracking-widest uppercase">INICIANDO SISTEMA</div>
+    </div>
+  );
 
   if(screen==="adminlogin")return(
     <div className="relative z-10 pt-32 pb-24 flex flex-col items-center justify-center w-full px-4">
