@@ -69,11 +69,32 @@ export default function MigrationWizard() {
   const [profession, setProfession] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [legacyCount, setLegacyCount] = useState(0);
+  const [lookingUp, setLookingUp] = useState(false);
   
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!email.trim()) { setError("Por favor ingresa tu correo."); return; }
-    setError("");
-    setStep(2);
+    setError(""); setLookingUp(true);
+    try {
+      // Look up legacy data to pre-fill and show count
+      const { data: legacyData } = await supabase
+        .from('legacy_entries')
+        .select('legacy_name, legacy_profession, amount')
+        .eq('legacy_email', email.trim().toLowerCase())
+        .eq('migrated', false);
+
+      if (legacyData && legacyData.length > 0) {
+        setLegacyCount(legacyData.length);
+        if (!name) setName(legacyData[0].legacy_name || "");
+        if (!profession) setProfession(legacyData[0].legacy_profession || "");
+      } else {
+        setLegacyCount(0);
+      }
+      setStep(2);
+    } catch {
+      setStep(2); // Proceed anyway
+    }
+    setLookingUp(false);
   };
 
   const handleMigrate = async () => {
@@ -163,8 +184,8 @@ export default function MigrationWizard() {
                   
                   {error && <div className="p-3 mb-4 mt-4 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium">{error}</div>}
                   
-                  <button onClick={handleNext} className="w-full mt-8 py-4 rounded-lg font-bold text-sm tracking-wide bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-2">
-                    Comenzar Actualización <ArrowRight size={18} />
+                  <button onClick={handleNext} disabled={lookingUp} className="w-full mt-8 py-4 rounded-lg font-bold text-sm tracking-wide bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                    {lookingUp ? "Buscando tu cuenta..." : <>Comenzar Actualización <ArrowRight size={18} /></>}
                   </button>
                 </motion.div>
               )}
@@ -180,9 +201,15 @@ export default function MigrationWizard() {
                   <h1 className="text-3xl lg:text-4xl font-black tracking-tighter text-white mb-2 leading-tight">
                     Crea tu nueva llave.
                   </h1>
-                  <p className="text-white/40 text-sm mb-8">
+                  <p className="text-white/40 text-sm mb-4">
                     Actualizando cuenta para: <span className="font-mono text-cyan-400">{email}</span>
                   </p>
+                  {legacyCount > 0 && (
+                    <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold mb-6 flex items-center gap-2">
+                      <CheckCircle2 size={14} />
+                      Se encontraron <span className="text-white font-black">{legacyCount}</span> operaciones históricas. Se migrarán automáticamente a tu nueva cuenta.
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     <PasswordInput label="Crea tu nueva Contraseña" value={password} onChange={(e: any) => setPassword(e.target.value)} onGenerate={generateSecurePassword} />
