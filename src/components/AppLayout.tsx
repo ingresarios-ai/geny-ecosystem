@@ -4,6 +4,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Menu, LayoutGrid, BarChart2, Target, X, ChevronDown, UserCircle, User, Shield, LogOut } from 'lucide-react';
 import Auth from '../pages/Auth';
 import { supabase } from '../lib/supabase';
+import FomoNotifications from './FomoNotifications';
 
 export default function AppLayout() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -322,6 +323,9 @@ export default function AppLayout() {
           </div>
         </div>
       </div>
+
+      {/* FOMO Notifications */}
+      <FomoNotifications />
     </div>
   );
 }
