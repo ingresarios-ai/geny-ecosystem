@@ -4,6 +4,21 @@ import { useNavigate } from "react-router-dom";
 import { User, Shield, Activity, RefreshCw, Edit3, Trash2, Globe2, Eye, EyeOff, LogOut, ArrowLeft, UserPlus, TrendingUp, TrendingDown, BarChart3, PieChart, Users, Crown } from "lucide-react";
 import AdminAuth from "./AdminAuth";
 
+const BrandLogo = ({ align = "left" }: { align?: "left" | "right" | "center" }) => {
+  const al = align === "center" ? "items-center text-center" : align === "right" ? "items-end text-right" : "items-start text-left";
+  const m = align === "center" ? "" : align === "right" ? "mr-1" : "ml-1";
+  return (
+    <div className={`flex flex-col select-none ${al}`}>
+      <div className={`text-4xl lg:text-5xl font-black tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-400 drop-shadow-[0_0_20px_rgba(34,211,238,0.4)]`}>
+        GENY
+      </div>
+      <div className={`font-bold text-cyan-400 text-[9px] lg:text-[11px] tracking-[0.4em] uppercase mt-1 ${m}`}>
+        Ecosystem
+      </div>
+    </div>
+  );
+};
+
 // ─── Mini Bar Chart Component (Pure CSS) ───
 const MiniBarChart = ({ data, maxVal, color }: { data: { label: string; value: number }[]; maxVal: number; color: string }) => (
   <div className="flex items-end gap-1 h-32 w-full">
@@ -279,11 +294,15 @@ export default function AdminDashboard() {
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 flex items-center gap-3">
-               <Shield className="text-cyan-400"/> PANEL DE ADMINISTRACIÓN
-            </h1>
-            <p className="text-white/50 text-xs font-mono tracking-widest uppercase mt-1">Gestión del ecosistema GENY</p>
+          <div className="flex items-center gap-6">
+            <BrandLogo align="left" />
+            <div className="h-10 w-px bg-white/10 hidden md:block" />
+            <div>
+              <h1 className="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500">
+                 PANEL ADMIN
+              </h1>
+              <p className="text-white/50 text-xs font-mono tracking-widest uppercase mt-1">Gestión del ecosistema</p>
+            </div>
           </div>
           <button onClick={loadData} className="px-4 py-2 border border-white/10 rounded-lg text-white/50 hover:bg-white/5 hover:text-white transition-all flex items-center gap-2 text-xs uppercase tracking-widest">
              <RefreshCw size={14}/> Refrescar
