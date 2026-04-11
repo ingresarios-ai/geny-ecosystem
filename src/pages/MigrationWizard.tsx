@@ -172,15 +172,16 @@ export default function MigrationWizard() {
                     <ShieldCheck size={14} /> Actualización de Seguridad
                   </div>
                   <h1 className="text-3xl lg:text-4xl font-black tracking-tighter text-white mb-4 leading-tight">
-                    Estamos mejorando tu plataforma.
+                    ¡Nos actualizamos!
                   </h1>
+                  <p className="text-white/60 text-sm mb-2 leading-relaxed">
+                    Tu plataforma Geny-B ahora es parte del nuevo <span className="text-cyan-400 font-bold whitespace-nowrap">GENY Ecosystem</span>.
+                  </p>
                   <p className="text-white/60 text-sm mb-6 leading-relaxed">
-                    Hemos migrado a un nuevo y poderoso entorno en <span className="text-cyan-400 font-bold whitespace-nowrap">genyapp.ingresarios.ai</span>. 
-                    <br/><br/>
-                    Tranquilo, tu capital de datos y tu historial de operaciones están **perfectamente a salvo**. Solo necesitamos que configures una nueva clave de acceso de grado bancario para tu Bóveda.
+                    Ingresa tu correo electrónico para verificar tu cuenta y recuperar tu historial de operaciones. <span className="text-emerald-400 font-semibold">Todos tus datos están a salvo.</span>
                   </p>
 
-                  <SleekInput label="Correo con el que entrabas a Geny-B" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
+                  <SleekInput label="Tu correo electrónico" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
                   
                   {error && <div className="p-3 mb-4 mt-4 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium">{error}</div>}
                   
