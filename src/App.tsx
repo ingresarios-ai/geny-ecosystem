@@ -7,11 +7,14 @@ import AppLayout from './components/AppLayout';
 import Posicionamiento from './pages/Posicionamiento';
 import MiPerfil from './pages/MiPerfil';
 import AdminDashboard from './pages/AdminDashboard';
+import MigrationWizard from './pages/MigrationWizard';
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/geny" replace />} />
+        <Route path="/actualizacion" element={<MigrationWizard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route element={<AppLayout />}>
           <Route path="/geny" element={<EcosystemHub />} />
