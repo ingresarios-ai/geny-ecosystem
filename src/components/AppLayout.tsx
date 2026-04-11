@@ -207,8 +207,6 @@ export default function AppLayout() {
             <div 
               className="relative" 
               ref={dropdownRef}
-              onMouseEnter={() => setAppsDropdownOpen(true)}
-              onMouseLeave={() => setAppsDropdownOpen(false)}
             >
               <button 
                 onClick={() => setAppsDropdownOpen(!appsDropdownOpen)}
@@ -249,8 +247,6 @@ export default function AppLayout() {
           <div 
             className="relative" 
             ref={profileRef}
-            onMouseEnter={() => setProfileDropdownOpen(true)}
-            onMouseLeave={() => setProfileDropdownOpen(false)}
           >
             <button 
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
