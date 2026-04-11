@@ -172,7 +172,7 @@ export default function FomoNotifications() {
   if (dismissed || notifications.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-6 z-[60] max-w-[340px]">
+    <div className="fixed bottom-24 md:bottom-6 left-4 right-4 md:left-6 md:right-auto z-[60] max-w-[340px] mx-auto pointer-events-none flex justify-center md:justify-start">
       <AnimatePresence>
         {visible && currentNotif && (
           <motion.div
@@ -180,7 +180,7 @@ export default function FomoNotifications() {
             animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, x: -20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="relative group"
+            className="relative group w-full pointer-events-auto"
           >
             {/* Glow effect */}
             <div className={`absolute -inset-1 rounded-2xl blur-lg opacity-30 ${
