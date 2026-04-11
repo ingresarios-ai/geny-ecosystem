@@ -203,9 +203,11 @@ export default function MigrationWizard() {
                     Actualizando cuenta para: <span className="font-mono text-cyan-400">{email}</span>
                   </p>
                   {legacyCount > 0 && (
-                    <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-6 flex items-center gap-2">
-                      <CheckCircle2 size={16} />
-                      Se encontraron <span className="text-white font-black">{legacyCount}</span> operaciones históricas. Se migrarán automáticamente a tu nueva cuenta.
+                    <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-6 flex items-start gap-3">
+                      <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                      <div>
+                        Se encontraron <span className="text-white font-black ml-0.5 mr-0.5 text-base">{legacyCount}</span> operaciones históricas. Se migrarán automáticamente a tu nueva cuenta.
+                      </div>
                     </div>
                   )}
 
