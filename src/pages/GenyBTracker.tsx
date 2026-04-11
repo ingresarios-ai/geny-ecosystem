@@ -139,9 +139,8 @@ export default function App(){
     if (!error && data) {
          setEntries([...entries,data]);
          setAllEntries([...allEntries, {...data, userEmail: user.email, userName: user.name}]);
-         
          // Enviar al Webhook de FOMO solo en ganancias
-         if (checkinMode==="gain") {
+         if (checkinMode === "gain") {
            try {
              await fetch("https://kbgvfrwgycayhuneuyfo.supabase.co/functions/v1/fomo-webhook", {
                method: "POST",
@@ -149,7 +148,7 @@ export default function App(){
                body: JSON.stringify({
                  name: user.name,
                  occupation: user.profession || "Miembro",
-                 amount: `${val} usd`
+                 amount: `${finalAmount} usd`
                })
              });
            } catch(e) {
