@@ -6,11 +6,13 @@ import AppLayout from './components/AppLayout';
 
 import Posicionamiento from './pages/Posicionamiento';
 import MiPerfil from './pages/MiPerfil';
+import AdminDashboard from './pages/AdminDashboard';
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/geny" replace />} />
+        <Route path="/admin" element={<AdminDashboard />} />
         <Route element={<AppLayout />}>
           <Route path="/geny" element={<EcosystemHub />} />
           <Route path="/geny/genyb" element={<GenyBTracker />} />

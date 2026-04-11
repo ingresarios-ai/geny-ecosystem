@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { motion, AnimatePresence } from "motion/react";
 import { Lightbulb, Target, TrendingUp } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 // Types
 type ScenarioType = "agresivo" | "equilibrado" | "conservador" | "custom";
@@ -72,7 +73,7 @@ export default function Posicionamiento() {
   const [simRes, setSimRes] = useState<SimResult | null>(null);
 
   // Helper to trigger simulation
-  const runSim = (overrideParams?: any) => {
+  const runSim = async (overrideParams?: any) => {
     const pAcc = parseFloat(accountSize) || 0;
     const pDd = parseFloat(overrideParams?.dd || dd) || 0;
     const pTgt = parseFloat(overrideParams?.target || target) || 0;
@@ -122,14 +123,43 @@ export default function Posicionamiento() {
       i++;
     }
 
-    setSimRes({
+    const finalRes = {
       currentBalance,
       totalTrades: history.length,
       success,
       failure,
       history,
       chartData
-    });
+    };
+
+    setSimRes(finalRes);
+
+    try {
+      const u = localStorage.getItem("cobro-user");
+      if (u) {
+        const parsed = JSON.parse(u);
+        if (parsed.id && parsed.id !== "00000000-0000-0000-0000-000000000000") {
+          await supabase.from("posicionamiento_data").insert([{
+            user_id: parsed.id,
+            scenario_type: scenario,
+            account_size: pAcc,
+            drawdown: pDd,
+            target_amount: pTgt,
+            avg_win_rate: pAvg,
+            rbr: pRbr,
+            trades_per_month: pTpm,
+            risk_per_trade: risk,
+            expected_months: tradesNeeded > 0 ? (tradesNeeded / pTpm).toFixed(1) : "NEGATIVA",
+            success,
+            failure,
+            total_trades: history.length,
+            final_balance: currentBalance
+          }]);
+        }
+      }
+    } catch(e) {
+      console.error("Error saving simulation:", e);
+    }
   };
 
   const handleScenario = (s: ScenarioType) => {

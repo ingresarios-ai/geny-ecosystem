@@ -1,21 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, LayoutGrid, BarChart2, Target, X, ChevronDown, UserCircle, User } from 'lucide-react';
+import { Menu, LayoutGrid, BarChart2, Target, X, ChevronDown, UserCircle, User, Shield, LogOut } from 'lucide-react';
 import Auth from '../pages/Auth';
+import { supabase } from '../lib/supabase';
 
 export default function AppLayout() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appsDropdownOpen, setAppsDropdownOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
 
-  const verifyAuth = () => {
+  const verifyAuth = async () => {
     try {
       const u = localStorage.getItem("cobro-user");
       if (u) {
@@ -26,11 +30,21 @@ export default function AppLayout() {
         } else {
           setAvatarUrl("");
         }
+
+        // Check if Admin
+        if (parsed.id && parsed.id !== "00000000-0000-0000-0000-000000000000") {
+            const { data } = await supabase.from('profiles').select('role').eq('id', parsed.id).single();
+            if (data?.role === 'admin') setIsAdmin(true);
+            else setIsAdmin(false);
+        }
+
       } else {
         setIsAuthenticated(false);
+        setIsAdmin(false);
       }
     } catch {
       setIsAuthenticated(false);
+      setIsAdmin(false);
     }
     setAuthChecking(false);
   };
@@ -55,6 +69,13 @@ export default function AppLayout() {
     verifyAuth();
   };
 
+  const handleSignOut = async () => {
+    setProfileDropdownOpen(false);
+    localStorage.removeItem("cobro-user");
+    await supabase.auth.signOut();
+    window.dispatchEvent(new Event('UserLogout'));
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
@@ -72,6 +93,9 @@ export default function AppLayout() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setAppsDropdownOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -88,6 +112,10 @@ export default function AppLayout() {
     { name: "GENY-B Tracker", path: "/geny/genyb", icon: <BarChart2 size={16} /> },
     { name: "Posicionamiento Dinámico", path: "/geny/posicionamiento", icon: <Target size={16} /> }
   ];
+
+  if (isAdmin) {
+      apps.push({ name: "Admin Dashboard", path: "/admin", icon: <Shield size={16} /> });
+  }
 
   if (authChecking) {
     return (
@@ -158,7 +186,12 @@ export default function AppLayout() {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center text-xs font-medium tracking-widest uppercase text-white/70">
             {/* Apps Dropdown */}
-            <div className="relative" ref={dropdownRef}>
+            <div 
+              className="relative" 
+              ref={dropdownRef}
+              onMouseEnter={() => setAppsDropdownOpen(true)}
+              onMouseLeave={() => setAppsDropdownOpen(false)}
+            >
               <button 
                 onClick={() => setAppsDropdownOpen(!appsDropdownOpen)}
                 className="flex items-center gap-1 hover:text-white transition-colors focus:outline-none"
@@ -194,14 +227,52 @@ export default function AppLayout() {
 
           <div className="hidden md:block w-px h-6 bg-white/20"></div>
 
-          {/* Profile Icon */}
-          <Link to="/geny/perfil" className="w-8 h-8 rounded-full overflow-hidden border border-white/20 hover:border-cyan-400/50 transition-colors cursor-pointer relative bg-black/40 flex items-center justify-center">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
-            ) : (
-              <User size={16} className="text-white/50" />
-            )}
-          </Link>
+          {/* Profile Dropdown */}
+          <div 
+            className="relative" 
+            ref={profileRef}
+            onMouseEnter={() => setProfileDropdownOpen(true)}
+            onMouseLeave={() => setProfileDropdownOpen(false)}
+          >
+            <button 
+              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+              className="w-8 h-8 rounded-full overflow-hidden border border-white/20 hover:border-cyan-400/50 transition-colors cursor-pointer relative bg-black/40 flex items-center justify-center focus:outline-none"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                <User size={16} className="text-white/50" />
+              )}
+            </button>
+            <AnimatePresence>
+              {profileDropdownOpen && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute top-full mt-4 right-0 w-48 glass-panel rounded-2xl p-2 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col gap-1"
+                  style={{ background: 'rgba(5, 10, 15, 0.85)' }}
+                >
+                  <Link 
+                    to="/geny/perfil" 
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-white/10 text-white/80 hover:text-white"
+                  >
+                    <User size={16} />
+                    <span className="text-xs font-bold font-sans tracking-wide">Mi Cuenta</span>
+                  </Link>
+                  <button 
+                    onClick={handleSignOut}
+                    className="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-red-500/20 text-red-500 hover:text-red-400 w-full text-left"
+                  >
+                    <LogOut size={16} />
+                    <span className="text-xs font-bold font-sans tracking-wide">Cerrar Sesión</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </nav>
 
