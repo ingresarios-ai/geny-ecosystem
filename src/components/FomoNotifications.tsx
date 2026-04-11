@@ -169,6 +169,9 @@ export default function FomoNotifications() {
     setDismissed(true);
   };
 
+  // Temporarily hidden per user request
+  return null;
+
   if (dismissed || notifications.length === 0) return null;
 
   return (
