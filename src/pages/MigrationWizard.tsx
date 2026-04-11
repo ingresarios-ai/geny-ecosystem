@@ -168,24 +168,24 @@ export default function MigrationWizard() {
                   key="step1"
                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest mb-6">
                     <ShieldCheck size={14} /> Actualización de Seguridad
                   </div>
-                  <h1 className="text-3xl lg:text-4xl font-black tracking-tighter text-white mb-4 leading-tight">
+                  <h1 className="text-3xl lg:text-5xl font-black tracking-tighter text-white mb-4 leading-tight">
                     ¡Nos actualizamos!
                   </h1>
-                  <p className="text-white/60 text-sm mb-2 leading-relaxed">
+                  <p className="text-white/60 text-base mb-2 leading-relaxed">
                     Tu plataforma Geny-B ahora es parte del nuevo <span className="text-cyan-400 font-bold whitespace-nowrap">GENY Ecosystem</span>.
                   </p>
-                  <p className="text-white/60 text-sm mb-6 leading-relaxed">
+                  <p className="text-white/60 text-base mb-6 leading-relaxed">
                     Ingresa tu correo electrónico para verificar tu cuenta y recuperar tu historial de operaciones. <span className="text-emerald-400 font-semibold">Todos tus datos están a salvo.</span>
                   </p>
 
                   <SleekInput label="Tu correo electrónico" type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} />
                   
-                  {error && <div className="p-3 mb-4 mt-4 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium">{error}</div>}
+                  {error && <div className="p-3 mb-4 mt-4 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-sm font-medium">{error}</div>}
                   
-                  <button onClick={handleNext} disabled={lookingUp} className="w-full mt-8 py-4 rounded-lg font-bold text-sm tracking-wide bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                  <button onClick={handleNext} disabled={lookingUp} className="w-full mt-8 py-4 rounded-lg font-bold text-base tracking-wide bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                     {lookingUp ? "Buscando tu cuenta..." : <>Comenzar Actualización <ArrowRight size={18} /></>}
                   </button>
                 </motion.div>
@@ -196,18 +196,18 @@ export default function MigrationWizard() {
                   key="step2"
                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                 >
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest mb-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-black uppercase tracking-widest mb-6">
                     Paso Final
                   </div>
-                  <h1 className="text-3xl lg:text-4xl font-black tracking-tighter text-white mb-2 leading-tight">
+                  <h1 className="text-3xl lg:text-5xl font-black tracking-tighter text-white mb-2 leading-tight">
                     Crea tu nueva llave.
                   </h1>
-                  <p className="text-white/40 text-sm mb-4">
+                  <p className="text-white/40 text-base mb-4">
                     Actualizando cuenta para: <span className="font-mono text-cyan-400">{email}</span>
                   </p>
                   {legacyCount > 0 && (
-                    <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold mb-6 flex items-center gap-2">
-                      <CheckCircle2 size={14} />
+                    <div className="px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-6 flex items-center gap-2">
+                      <CheckCircle2 size={16} />
                       Se encontraron <span className="text-white font-black">{legacyCount}</span> operaciones históricas. Se migrarán automáticamente a tu nueva cuenta.
                     </div>
                   )}
@@ -218,15 +218,15 @@ export default function MigrationWizard() {
                     <SleekInput label="Tu Profesión" type="text" value={profession} onChange={(e: any) => setProfession(e.target.value)} />
                   </div>
 
-                  {error && <div className="p-3 mt-6 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium leading-snug break-words">
+                  {error && <div className="p-3 mt-6 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-sm font-medium leading-snug break-words">
                     {error}
                   </div>}
 
-                  <button onClick={handleMigrate} disabled={loading} className="w-full mt-8 py-4 rounded-lg font-bold text-sm tracking-wide bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-2">
+                  <button onClick={handleMigrate} disabled={loading} className="w-full mt-8 py-4 rounded-lg font-bold text-base tracking-wide bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-2">
                     {loading ? "Asegurando bóveda..." : "Completar Actualización"}
                   </button>
 
-                  <button onClick={() => setStep(1)} className="w-full mt-4 py-3 text-xs uppercase tracking-widest text-white/30 hover:text-white transition-colors font-bold">
+                  <button onClick={() => setStep(1)} className="w-full mt-4 py-3 text-sm uppercase tracking-widest text-white/30 hover:text-white transition-colors font-bold">
                     Volver
                   </button>
                 </motion.div>
