@@ -137,7 +137,8 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
         id: data.user.id, 
         name: contact?.full_name || contact?.email || data.user.email, 
         email: data.user.email, 
-        profession: contact?.profession || "" 
+        profession: contact?.profession || "",
+        is_migrated: data.user.user_metadata?.is_migrated || false
       };
       onLogin(u);
     } catch (err: any) { setError(`Credenciales inválidas o error de red.`); console.error(err); }

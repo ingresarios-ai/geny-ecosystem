@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, LayoutGrid, BarChart2, Target, X, ChevronDown, UserCircle, User, Shield, LogOut } from 'lucide-react';
+import { Menu, LayoutGrid, BarChart2, Target, X, ChevronDown, UserCircle, User, Shield, LogOut, Info, Globe2 } from 'lucide-react';
 import Auth from '../pages/Auth';
 import { supabase } from '../lib/supabase';
 import FomoNotifications from './FomoNotifications';
@@ -12,6 +12,8 @@ export default function AppLayout() {
   const [appsDropdownOpen, setAppsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -30,6 +32,14 @@ export default function AppLayout() {
           setAvatarUrl(parsed.avatar);
         } else {
           setAvatarUrl("");
+        }
+        setUserEmail(parsed.email);
+
+        if (parsed.is_migrated) {
+          const hasSeen = localStorage.getItem(`has_seen_migration_${parsed.email}`);
+          if (!hasSeen) {
+            setShowMigrationModal(true);
+          }
         }
 
         // Check if Admin
@@ -107,6 +117,13 @@ export default function AppLayout() {
     setMobileMenuOpen(false);
     setAppsDropdownOpen(false);
   }, [location.pathname]);
+
+  const dismissMigrationModal = () => {
+    if (userEmail) {
+      localStorage.setItem(`has_seen_migration_${userEmail}`, 'true');
+    }
+    setShowMigrationModal(false);
+  };
 
   const apps = [
     { name: "Hub del Ecosistema", path: "/geny", icon: <LayoutGrid size={16} /> },
@@ -323,6 +340,50 @@ export default function AppLayout() {
           </div>
         </div>
       </div>
+
+      {/* Migration Notice Modal */}
+      <AnimatePresence>
+        {showMigrationModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className="relative w-full max-w-md bg-[#0a0510] border border-white/10 rounded-3xl p-8 shadow-[0_0_50px_rgba(34,211,238,0.15)] text-center flex flex-col items-center overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-blue-500" />
+              
+              <div className="w-16 h-16 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6">
+                <Info size={32} className="text-cyan-400" />
+              </div>
+              
+              <h2 className="text-2xl font-black text-white mb-3">Aviso Importante</h2>
+              
+              <p className="text-white/60 mb-6 font-light leading-relaxed text-sm">
+                Tu cuenta ha sido actualizada al nuevo ecosistema. De ahora en adelante, asegúrate de iniciar sesión únicamente desde la dirección oficial:
+              </p>
+              
+              <div className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 mb-8 w-full">
+                <Globe2 size={16} className="text-cyan-400" />
+                <span className="font-mono text-cyan-400 font-bold select-all tracking-wide">
+                  genyapp.ingresarios.ai
+                </span>
+              </div>
+              
+              <button 
+                onClick={dismissMigrationModal}
+                className="w-full py-4 rounded-xl font-bold bg-white text-black hover:bg-gray-200 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              >
+                Entendido, continuar
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* FOMO Notifications */}
       <FomoNotifications />
