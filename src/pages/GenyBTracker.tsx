@@ -228,146 +228,6 @@ export default function App(){
     </div>
   );
 
-  if(screen==="adminlogin")return(
-    <div className="relative z-10 pt-32 pb-24 flex flex-col items-center justify-center w-full px-4">
-      <div className="w-full max-w-[400px]">
-        <div className="mb-8"><Logo size="md"/></div>
-        <div className="glass-panel rounded-3xl p-8 border-white/5 bg-black/40">
-          <div className="text-center mb-6">
-            <div className="text-3xl mb-2">🛡️</div>
-            <h2 className="text-xl font-bold m-0 text-white">Panel Admin</h2>
-            <p className="text-white/50 text-sm mt-1">Clave de administrador</p>
-          </div>
-          <div className="flex flex-col gap-4">
-            <Input value={adminPass} onChange={(e:any)=>setAdminPass(e.target.value)} placeholder="Clave secreta" type="password" onKeyDown={(e:any)=>e.key==="Enter"&&handleAdminLogin()}/>
-            <Btn onClick={handleAdminLogin} className="w-full py-4 mt-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-base shadow-[0_0_20px_rgba(139,92,246,0.3)]">
-              Acceder 🛡️
-            </Btn>
-            <Btn onClick={()=>setScreen("main")} className="py-2 mt-2 bg-transparent border border-white/10 text-white/50 hover:bg-white/5 text-sm">
-              ← Volver
-            </Btn>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-
-
-  // ===== ADMIN PANEL =====
-  if(screen==="admin"){
-    const pie=getUserPie();const totalAll=pie.reduce((s:number,p:any)=>s+p.value,0);
-    const selSrc=selectedUser?allEntries.filter(e=>e.userEmail===selectedUser):allEntries;
-    const selChart=getChart(adminPeriod,selSrc);const selTotal=selChart.reduce((s,d)=>s+d.valor,0);
-    const selName=selectedUser?allUsers.find(u=>u.email===selectedUser)?.name||selectedUser:"Todos";
-    const activeToday=[...new Set(allEntries.filter(e=>e.date===td()).map(e=>e.userEmail))].length;
-    return(
-      <div className="relative z-10 pt-32 pb-24 max-w-[800px] w-full mx-auto px-4">
-        <div className="glass-panel rounded-2xl p-4 flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(139,92,246,0.3)]">🛡️</div>
-            <div>
-              <div className="font-bold text-sm tracking-wide">Panel Admin</div>
-              <div className="text-white/50 text-[11px] uppercase tracking-wider">{new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"})}</div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Btn onClick={()=>setScreen("ghlsetup")} className="bg-transparent border border-white/10 text-white/50 hover:bg-white/5 px-2 py-1">⚙️</Btn>
-            <Btn onClick={()=>{setScreen("main");setAdminPass("")}} className="bg-transparent border border-white/10 text-white/50 hover:bg-white/5 text-xs px-3">Salir</Btn>
-          </div>
-        </div>
-
-        <div className="max-w-[700px] mx-auto">
-          {/* KPIs */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {[["Total Hoy",fmtF(allEntries.filter(e=>e.date===td()).reduce((s,e)=>s+e.amount,0)),"text-cyan-400"],["Usuarios",allUsers.length,"text-emerald-400"],["Activos Hoy",activeToday,"text-purple-400"]].map(([l,v,c]: any,i: number)=>(
-              <div key={i} className="glass-panel rounded-2xl p-4 text-center border-white/5">
-                <div className="text-white/50 text-[11px] uppercase tracking-wider mb-1">{l}</div>
-                <div className={`text-xl font-black ${c}`}>{v}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mb-4"><Tabs items={[["consolidated","📊 Consolidado"],["byuser","👥 Por Usuario"]]} active={adminView} onSelect={(v:any)=>{setAdminView(v);setSelectedUser(null)}} color="#a855f7"/></div>
-          <div className="mb-6"><Tabs items={[["dia","Día"],["semana","Semana"],["mes","Mes"]]} active={adminPeriod} onSelect={setAdminPeriod}/></div>
-
-          {adminView==="consolidated"?(
-            <>
-              <div className="glass-panel rounded-2xl p-6 mb-6">
-                <div className="text-sm font-bold mb-4 text-cyan-400 tracking-wider">DISTRIBUCIÓN POR USUARIO</div>
-                {pie.length===0?<div className="text-center py-8 text-white/50">Sin datos</div>:(
-                  <>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie data={pie} dataKey="value" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2} label={({name,percent}:any)=>`${name} ${(percent*100).toFixed(0)}%`} style={{fontSize:11, fill: 'rgba(255,255,255,0.7)'}}>
-                          {pie.map((p:any,i:number)=><Cell key={i} fill={p.fill}/>)}
-                        </Pie>
-                        <Tooltip formatter={v=>fmtF(v)} contentStyle={{background:"rgba(0,0,0,0.8)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#fff"}}/>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="text-xl font-black text-cyan-400 text-center mt-2">Total: {fmtF(totalAll)}</div>
-                  </>
-                )}
-              </div>
-              <div className="glass-panel rounded-2xl p-6">
-                <div className="text-sm font-bold mb-4 text-white/50 tracking-wider">TENDENCIA CONSOLIDADA</div>
-                <ChartBlock data={selChart} period={adminPeriod} height={250}/>
-              </div>
-            </>
-          ):(
-            <>
-              <div className="glass-panel rounded-2xl p-6 mb-6">
-                <div className="text-sm font-bold mb-4 text-emerald-400 tracking-wider">👥 USUARIOS ({allUsers.length})</div>
-                <div className="flex flex-col gap-2">
-                  <div onClick={()=>setSelectedUser(null)} className={`flex justify-between items-center p-3 rounded-xl cursor-pointer border transition-colors ${!selectedUser?'bg-emerald-500/10 border-emerald-500/20':'bg-black/20 border-white/5 hover:bg-white/5'}`}>
-                    <span className="font-semibold text-sm text-white">📊 Todos</span>
-                    <span className="text-cyan-400 font-bold">
-                      {fmtF((()=>{
-                        const p=adminPeriod;
-                        const src = p==="dia"?allEntries.filter(e=>e.date===td()) : p==="semana" ? (()=>{ const w=ws(td()); const end=new Date(w+"T12:00:00-05:00"); end.setDate(end.getDate()+6); return allEntries.filter(e=>e.date>=w&&e.date<=tzDateStr(end)); })() : allEntries.filter(e=>e.date?.startsWith(td().slice(0,7)));
-                        return src.reduce((s,e)=>s+e.amount,0);
-                      })())}
-                    </span>
-                  </div>
-                  {allUsers.map((u,i)=>{
-                    const p=adminPeriod;
-                    const ue=allEntries.filter(e=>e.userEmail===u.email);
-                    const filteredSrc = p==="dia"?ue.filter(e=>e.date===td()) : p==="semana" ? (()=>{ const w=ws(td()); const end=new Date(w+"T12:00:00-05:00"); end.setDate(end.getDate()+6); return ue.filter(e=>e.date>=w&&e.date<=tzDateStr(end)); })() : ue.filter(e=>e.date?.startsWith(td().slice(0,7)));
-                    const ut=filteredSrc.reduce((s,e)=>s+e.amount,0);
-                    const sel=selectedUser===u.email;
-                    return(
-                      <div key={u.email} onClick={()=>setSelectedUser(sel?null:u.email)} className={`flex justify-between items-center p-3 rounded-xl cursor-pointer border transition-colors ${sel?'bg-cyan-500/10 border-cyan-500/20':'bg-black/20 border-white/5 hover:bg-white/5'}`}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full" style={{background:UCOL[i%UCOL.length]}}/>
-                          <div>
-                            <div className="font-semibold text-sm text-white">{u.name}</div>
-                            <div className="text-white/40 text-[11px]">{u.profession?`${u.profession} · `:""}{u.email}</div>
-                          </div>
-                        </div>
-                        <span className="font-bold" style={{color:UCOL[i%UCOL.length]}}>{fmtF(ut)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="glass-panel rounded-2xl p-6 mb-6">
-                <div className="flex justify-between items-center mb-6">
-                  <div className="text-sm font-bold text-white/50 tracking-wider">{selName}</div>
-                  <div className="text-lg font-black text-emerald-400">{fmtF(selTotal)}</div>
-                </div>
-                <ChartBlock data={selChart} period={adminPeriod} height={250}/>
-              </div>
-              {selectedUser&&(()=>{const ue=allEntries.filter(e=>e.userEmail===selectedUser&&e.date===td());if(!ue.length)return null;return(
-                <div className="glass-panel rounded-2xl p-5 border-white/5">
-                  <div className="text-xs font-semibold mb-3 text-white/50 uppercase tracking-widest">Cobros hoy ({ue.length})</div>
-                  {ue.map(e=><div key={e.id} className="flex justify-between p-2.5 bg-black/30 rounded-lg mb-2 items-center"><span className={`font-semibold text-sm ${e.amount>=0?'text-emerald-400':'text-red-400'}`}>{e.amount>=0?"+":""}{fmtF(e.amount)}</span><span className="text-white/40 text-[11px]">{e.time}</span></div>)}
-                </div>)})()}
-            </>
-          )}
-          <div className="text-center mt-10 opacity-30"><Logo size="sm"/></div>
-        </div>
-      </div>
-    );
-  }
 
   // ===== MAIN =====
   const todayEntries=entries.filter(e=>e.date===td());
@@ -490,36 +350,35 @@ export default function App(){
             </div>
           </div>
           
-          {/* Lista de Movimientos de Hoy */}
-          {todayEntries.length>0&&<div className="glass-panel rounded-2xl p-5 border-white/5 bg-black/20">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-white/50 mb-4">Movimientos de hoy ({todayEntries.length})</div>
-            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-              <AnimatePresence>
-                {todayEntries.map((e:any)=><motion.div key={e.id} initial={{opacity:0, y:-20, scale:0.95}} animate={{opacity:1, y:0, scale:1}} exit={{opacity:0, scale:0.9, x:-20}} className="flex justify-between items-center p-3 bg-black/40 hover:bg-white/5 transition-colors rounded-xl border border-white/5 group">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${e.amount>=0?'bg-emerald-400':'bg-red-400'} shadow-[0_0_10px_currentColor]`} />
-                    <div>
-                      <div className={`font-bold font-mono tracking-tighter text-lg leading-none ${e.amount>=0?'text-emerald-400':'text-red-400'}`}>
-                        {e.amount>=0?"+":""}{fmtF(e.amount)}
+          {/* Historial General */}
+          {entries.length>0&&(()=>{
+            const sortedEntries=[...entries].sort((a,b)=>b.ts-a.ts);
+            return(
+            <div className="glass-panel rounded-2xl p-5 border-white/5 bg-black/20">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-white/50 mb-4">Historial General ({sortedEntries.length})</div>
+              <div className="flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                <AnimatePresence>
+                  {sortedEntries.map((e:any)=><motion.div key={e.id} initial={{opacity:0, y:-20, scale:0.95}} animate={{opacity:1, y:0, scale:1}} exit={{opacity:0, scale:0.9, x:-20}} className="flex justify-between items-center p-3 bg-black/40 hover:bg-white/5 transition-colors rounded-xl border border-white/5 group">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-2 shrink-0 rounded-full ${e.amount>=0?'bg-emerald-400':'bg-red-400'} shadow-[0_0_10px_currentColor]`} />
+                      <div className="flex flex-col">
+                        <div className={`font-bold font-mono tracking-tighter text-lg leading-none ${e.amount>=0?'text-emerald-400':'text-red-400'}`}>
+                          {e.amount>=0?"+":""}{fmtF(e.amount)}
+                        </div>
+                        <div className="text-white/30 text-[10px] uppercase tracking-wider mt-1">{e.date} · {e.time}</div>
                       </div>
-                      <div className="text-white/30 text-[10px] uppercase tracking-wider">{e.time}</div>
                     </div>
-                  </div>
-                  <Btn onClick={()=>handleDelete(e.id)} className="bg-transparent text-white/30 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-lg">×</Btn>
-                </motion.div>)}
-              </AnimatePresence>
-            </div>
-          </div>}
+                    <Btn onClick={()=>handleDelete(e.id)} className="bg-transparent text-white/30 hover:text-red-400 hover:bg-red-500/10 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-lg shrink-0">×</Btn>
+                  </motion.div>)}
+                </AnimatePresence>
+              </div>
+            </div>)
+          })()}
 
         </div>
       </div>
       
-      {/* Botón hacia Dashboard de Admin (solo visible/estético, para que el usuario conozca la funcionalidad) */}
-      <div className="flex justify-center mt-16 mb-4">
-        <Btn onClick={()=>setScreen("adminlogin")} className="bg-black/20 text-white/20 text-[10px] px-4 py-2 hover:bg-black/40 hover:text-white/40 uppercase tracking-widest font-mono">
-          🔐 Acceso Restringido Admin
-        </Btn>
-      </div>
+
     </main>
   );
 }
