@@ -320,10 +320,19 @@ export default function App(){
                 <div className="flex flex-col gap-2">
                   <div onClick={()=>setSelectedUser(null)} className={`flex justify-between items-center p-3 rounded-xl cursor-pointer border transition-colors ${!selectedUser?'bg-emerald-500/10 border-emerald-500/20':'bg-black/20 border-white/5 hover:bg-white/5'}`}>
                     <span className="font-semibold text-sm text-white">📊 Todos</span>
-                    <span className="text-cyan-400 font-bold">{fmtF(allEntries.filter(e=>e.date===td()).reduce((s,e)=>s+e.amount,0))}</span>
+                    <span className="text-cyan-400 font-bold">
+                      {fmtF((()=>{
+                        const p=adminPeriod;
+                        const src = p==="dia"?allEntries.filter(e=>e.date===td()) : p==="semana" ? (()=>{ const w=ws(td()); const end=new Date(w+"T12:00:00-05:00"); end.setDate(end.getDate()+6); return allEntries.filter(e=>e.date>=w&&e.date<=tzDateStr(end)); })() : allEntries.filter(e=>e.date?.startsWith(td().slice(0,7)));
+                        return src.reduce((s,e)=>s+e.amount,0);
+                      })())}
+                    </span>
                   </div>
                   {allUsers.map((u,i)=>{
-                    const ut=allEntries.filter(e=>e.userEmail===u.email&&e.date===td()).reduce((s,e)=>s+e.amount,0);
+                    const p=adminPeriod;
+                    const ue=allEntries.filter(e=>e.userEmail===u.email);
+                    const filteredSrc = p==="dia"?ue.filter(e=>e.date===td()) : p==="semana" ? (()=>{ const w=ws(td()); const end=new Date(w+"T12:00:00-05:00"); end.setDate(end.getDate()+6); return ue.filter(e=>e.date>=w&&e.date<=tzDateStr(end)); })() : ue.filter(e=>e.date?.startsWith(td().slice(0,7)));
+                    const ut=filteredSrc.reduce((s,e)=>s+e.amount,0);
                     const sel=selectedUser===u.email;
                     return(
                       <div key={u.email} onClick={()=>setSelectedUser(sel?null:u.email)} className={`flex justify-between items-center p-3 rounded-xl cursor-pointer border transition-colors ${sel?'bg-cyan-500/10 border-cyan-500/20':'bg-black/20 border-white/5 hover:bg-white/5'}`}>
