@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Wand2 } from "lucide-react";
+import { Eye, EyeOff, Wand2, ArrowLeft, Mail, CheckCircle } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -99,13 +99,15 @@ const quotes = [
 ];
 
 export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
-  const [loginMode, setLoginMode] = useState<"login" | "register">("login");
+  const [loginMode, setLoginMode] = useState<"login" | "register" | "recovery">("login");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regProf, setRegProf] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoverySuccess, setRecoverySuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [quoteIdx, setQuoteIdx] = useState(0);
@@ -179,6 +181,26 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
       setRegPassword(p);
   };
 
+  const handleRecovery = async () => {
+    if (!recoveryEmail.trim()) {
+      setError("Ingresa tu correo electrónico.");
+      return;
+    }
+    setLoading(true); setError("");
+    try {
+      const siteUrl = window.location.origin;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        recoveryEmail.trim(),
+        { redirectTo: `${siteUrl}/geny/reset-password` }
+      );
+      if (resetError) throw resetError;
+      setRecoverySuccess(true);
+    } catch (err: any) {
+      setError(err.message || "Error al enviar el enlace de recuperación.");
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="flex min-h-screen w-full relative z-10 font-sans">
       
@@ -195,14 +217,15 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
           <div className="flex-1 flex flex-col justify-center max-w-[380px] mx-auto w-full">
             <div className="mb-10">
               <h1 className="text-4xl lg:text-5xl font-black tracking-tighter text-white mb-3 leading-none">
-                {loginMode === 'login' ? 'Bienvenido.' : 'Únete.'}
+                {loginMode === 'login' ? 'Bienvenido.' : loginMode === 'register' ? 'Únete.' : 'Recuperar.'}
               </h1>
               <p className="text-white/40 text-sm font-medium">
-                El ecosistema de herramientas para traders.
+                {loginMode === 'recovery' ? 'Recupera el acceso a tu cuenta.' : 'El ecosistema de herramientas para traders.'}
               </p>
             </div>
 
-            {/* Highly Noticeable Segmented Control (Pill Toggle) */}
+            {/* Highly Noticeable Segmented Control (Pill Toggle) — hidden during recovery */}
+            {loginMode !== 'recovery' && (
             <div className="flex p-1.5 mb-8 bg-white/[0.05] rounded-2xl border border-white/10 relative w-full overflow-hidden shadow-inner">
               
               {/* Sliding Pill Background Indicator */}
@@ -229,6 +252,7 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
                 Crear Cuenta
               </button>
             </div>
+            )}
 
             <div className="relative min-h-[300px]">
               <AnimatePresence mode="wait">
@@ -251,8 +275,17 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
                         {loading ? "Verificando..." : "Acceder al Ecosistema"}
                       </Btn>
                     </div>
+
+                    {/* Forgot Password Link */}
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMode("recovery"); setError(""); setRecoverySuccess(false); setRecoveryEmail(loginEmail); }}
+                      className="text-white/40 hover:text-cyan-400 text-xs font-medium transition-colors mt-2 text-center"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
                   </motion.div>
-                ) : (
+                ) : loginMode === "register" ? (
                   <motion.div 
                     key="register"
                     initial={{ opacity: 0, x: 10 }}
@@ -273,6 +306,83 @@ export default function Auth({ onLogin }: { onLogin: (user: any) => void }) {
                         {loading ? "Creando..." : "Comenzar"}
                       </Btn>
                     </div>
+                  </motion.div>
+                ) : (
+                  /* Recovery Mode */
+                  <motion.div 
+                    key="recovery"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-4"
+                  >
+                    {/* Back button */}
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMode("login"); setError(""); setRecoverySuccess(false); }}
+                      className="flex items-center gap-2 text-white/40 hover:text-white text-xs font-medium transition-colors mb-2 self-start"
+                    >
+                      <ArrowLeft size={14} />
+                      Volver al inicio de sesión
+                    </button>
+
+                    <AnimatePresence mode="wait">
+                      {recoverySuccess ? (
+                        <motion.div
+                          key="recovery-success"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex flex-col items-center text-center py-4"
+                        >
+                          <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
+                            <CheckCircle size={32} className="text-emerald-400" />
+                          </div>
+                          <h3 className="text-xl font-black text-white mb-3">¡Correo Enviado!</h3>
+                          <p className="text-white/50 text-sm leading-relaxed mb-2">
+                            Hemos enviado un enlace de recuperación a:
+                          </p>
+                          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
+                            <Mail size={14} className="text-cyan-400" />
+                            <span className="text-cyan-400 font-mono text-sm font-bold">{recoveryEmail}</span>
+                          </div>
+                          <p className="text-white/30 text-xs leading-relaxed">
+                            Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña. Si no lo ves, revisa la carpeta de spam.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="recovery-form"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex flex-col gap-4"
+                        >
+                          <div className="flex items-center justify-center mb-2">
+                            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                              <Mail size={22} className="text-cyan-400" />
+                            </div>
+                          </div>
+                          <p className="text-white/50 text-sm text-center leading-relaxed">
+                            Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+                          </p>
+                          <SleekInput 
+                            label="Correo Electrónico" 
+                            type="email" 
+                            value={recoveryEmail} 
+                            onChange={(e: any) => setRecoveryEmail(e.target.value)} 
+                            onKeyDown={(e: any) => e.key === "Enter" && handleRecovery()}
+                          />
+
+                          {error && <div className="p-3 mt-2 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-medium">{error}</div>}
+
+                          <div className="mt-6">
+                            <Btn onClick={handleRecovery} disabled={loading} variant="gradient">
+                              {loading ? "Enviando..." : "Enviar Enlace de Recuperación"}
+                            </Btn>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>

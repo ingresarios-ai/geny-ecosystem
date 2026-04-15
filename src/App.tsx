@@ -8,6 +8,7 @@ import Posicionamiento from './pages/Posicionamiento';
 import MiPerfil from './pages/MiPerfil';
 import AdminDashboard from './pages/AdminDashboard';
 import MigrationWizard from './pages/MigrationWizard';
+import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/geny" replace />} />
         <Route path="/actualizacion" element={<MigrationWizard />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/geny/reset-password" element={<ResetPassword />} />
         <Route element={<AppLayout />}>
           <Route path="/geny" element={<EcosystemHub />} />
           <Route path="/geny/genyb" element={<GenyBTracker />} />
