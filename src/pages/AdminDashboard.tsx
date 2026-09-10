@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { User, Shield, Activity, RefreshCw, Edit3, Trash2, Globe2, Eye, EyeOff, LogOut, ArrowLeft, UserPlus, TrendingUp, TrendingDown, BarChart3, PieChart, Users, Crown, Search, X } from "lucide-react";
+import { User, Shield, Activity, RefreshCw, Edit3, Trash2, Globe2, Eye, EyeOff, LogOut, ArrowLeft, UserPlus, TrendingUp, TrendingDown, BarChart3, PieChart, Users, Crown, Search, X, Key, Copy, Check, Sparkles } from "lucide-react";
 import AdminAuth from "./AdminAuth";
 
 const BrandLogo = ({ align = "left" }: { align?: "left" | "right" | "center" }) => {
@@ -54,6 +54,17 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'analytics' | 'students' | 'admins'>('analytics');
   const [studentSearch, setStudentSearch] = useState("");
   const [rankingSearch, setRankingSearch] = useState("");
+
+  // Create Student State
+  const [isCreatingStudent, setIsCreatingStudent] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newProfession, setNewProfession] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createMsg, setCreateMsg] = useState<{ type: 'success' | 'error'; text: string; details?: { name: string; email: string; pass: string } } | null>(null);
+  const [copiedCreds, setCopiedCreds] = useState(false);
 
   // Edit User State
   const [editName, setEditName] = useState("");
@@ -181,6 +192,89 @@ export default function AdminDashboard() {
     setEditRole(selectedUser.role || "user");
     setEditPass("");
     setEditMode(true);
+  };
+
+  const generateRandomPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+    let pass = "Geny";
+    for (let i = 0; i < 6; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPass(pass);
+  };
+
+  const handleCreateStudent = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newEmail.trim() || !newPass.trim()) {
+      setCreateMsg({ type: 'error', text: 'El correo y la contraseña son obligatorios.' });
+      return;
+    }
+
+    if (newPass.length < 6) {
+      setCreateMsg({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres.' });
+      return;
+    }
+
+    setCreateLoading(true);
+    setCreateMsg(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token || "";
+
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${url}/functions/v1/admin-users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: "create_user",
+          payload: {
+            full_name: newName.trim(),
+            email: newEmail.trim().toLowerCase(),
+            profession: newProfession.trim(),
+            password: newPass.trim(),
+            role: "user"
+          }
+        })
+      });
+
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "No se pudo crear el alumno");
+
+      setCreateMsg({
+        type: 'success',
+        text: '¡Alumno registrado exitosamente!',
+        details: {
+          name: newName.trim() || 'Alumno',
+          email: newEmail.trim().toLowerCase(),
+          pass: newPass.trim()
+        }
+      });
+
+      // Clear form
+      setNewName("");
+      setNewEmail("");
+      setNewProfession("");
+      setNewPass("");
+      
+      // Reload user list
+      await loadData();
+
+    } catch (err: any) {
+      setCreateMsg({ type: 'error', text: err.message || 'Error al registrar el alumno' });
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const copyCredentials = (details: { name: string; email: string; pass: string }) => {
+    const text = `¡Hola ${details.name}! 👋\n\nYa tienes acceso activo a la plataforma de GENY.\n\n🔗 Acceso: https://genyapp.ingresarios.ai/geny\n📧 Usuario: ${details.email}\n🔑 Contraseña: ${details.pass}\n\n¡Te damos la bienvenida!`;
+    navigator.clipboard.writeText(text);
+    setCopiedCreds(true);
+    setTimeout(() => setCopiedCreds(false), 2500);
   };
 
   const saveUserEdits = async () => {
@@ -336,7 +430,7 @@ export default function AdminDashboard() {
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => { setActiveTab(tab.key); setSelectedUser(null); }}
+              onClick={() => { setActiveTab(tab.key); setSelectedUser(null); setIsCreatingStudent(false); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 activeTab === tab.key 
                   ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' 
@@ -553,12 +647,22 @@ export default function AdminDashboard() {
             <div className="lg:col-span-4 flex flex-col gap-4">
                <div className="glass-panel p-5 rounded-2xl border border-white/5 max-h-[75vh] flex flex-col">
                   <div className="flex items-center justify-between mb-3">
-                     <h2 className="text-xs font-black uppercase tracking-widest text-white/50 flex items-center gap-2">
-                        <User size={14} className="text-purple-400"/> ALUMNOS
-                     </h2>
-                     <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
-                        {filteredStudents.length} {studentSearch ? `de ${studentUsers.length}` : 'totales'}
-                     </span>
+                     <div className="flex items-center gap-2">
+                        <h2 className="text-xs font-black uppercase tracking-widest text-white/50 flex items-center gap-2">
+                           <User size={14} className="text-purple-400"/> ALUMNOS
+                        </h2>
+                        <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                           {filteredStudents.length} {studentSearch ? `de ${studentUsers.length}` : 'totales'}
+                        </span>
+                     </div>
+                     <button
+                        onClick={() => { setIsCreatingStudent(true); setSelectedUser(null); setCreateMsg(null); }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg ${isCreatingStudent ? 'bg-purple-500 text-white shadow-purple-500/30' : 'bg-purple-500/20 text-purple-300 hover:bg-purple-500 hover:text-white border border-purple-500/30'}`}
+                        title="Agregar un nuevo alumno con su contraseña"
+                     >
+                        <UserPlus size={13} />
+                        <span>Nuevo</span>
+                     </button>
                   </div>
 
                   {/* Buscador de usuarios */}
@@ -585,7 +689,7 @@ export default function AdminDashboard() {
                      {filteredStudents.map(u => (
                        <div 
                          key={u.id} 
-                         onClick={() => handleSelectUser(u)}
+                         onClick={() => { setIsCreatingStudent(false); handleSelectUser(u); }}
                          className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedUser?.id === u.id ? 'bg-purple-500/10 border-purple-500/30' : 'bg-black/30 border-white/5 hover:bg-white/5'}`}
                        >
                          <div className="flex justify-between items-start">
