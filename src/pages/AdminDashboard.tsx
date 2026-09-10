@@ -728,11 +728,21 @@ export default function AdminDashboard() {
             {/* STUDENT DETAIL */}
             <div className="lg:col-span-8">
                {!selectedUser ? (
-                 <div className="glass-panel h-full flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-white/5 opacity-50 min-h-[300px]">
-                    <Globe2 size={48} className="text-white/20 mb-4"/>
-                    <div className="font-bold tracking-widest text-sm uppercase">Selecciona un alumno</div>
-                    <div className="text-[10px] text-white/50 mt-2">Para ver detalles y configurar su cuenta</div>
-                 </div>
+                  <div className="glass-panel h-full flex flex-col items-center justify-center p-10 text-center rounded-2xl border border-white/5 min-h-[350px]">
+                     <div className="w-16 h-16 rounded-3xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-4">
+                        <UserPlus size={28}/>
+                     </div>
+                     <div className="font-bold tracking-widest text-sm uppercase text-white">Gestión de Alumnos</div>
+                     <div className="text-xs text-white/40 mt-1 max-w-sm">Selecciona un alumno de la lista para ver su rendimiento o crea uno nuevo con su contraseña.</div>
+                     <button
+                        type="button"
+                        onClick={() => { setIsCreatingStudent(true); setCreateMsg(null); }}
+                        className="mt-5 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-xl transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2 cursor-pointer"
+                     >
+                        <UserPlus size={14}/>
+                        <span>Registrar Nuevo Alumno</span>
+                     </button>
+                  </div>
                ) : (
                  <div className="space-y-6">
                     
@@ -896,6 +906,159 @@ export default function AdminDashboard() {
                )}
             </div>
 
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* MODAL: REGISTRAR NUEVO ALUMNO */}
+        {/* ═══════════════════════════════════════════════════ */}
+        {isCreatingStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="relative w-full max-w-lg glass-panel p-6 sm:p-8 rounded-3xl border border-purple-500/30 bg-[#0c101d]/95 shadow-2xl shadow-purple-950/50 max-h-[90vh] overflow-y-auto custom-scrollbar">
+              
+              {/* Modal Header */}
+              <div className="flex justify-between items-start border-b border-white/10 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500/30 to-indigo-600/30 flex items-center justify-center border border-purple-500/40 text-purple-300">
+                    <UserPlus size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tight">Registrar Alumno</h2>
+                    <p className="text-white/40 text-xs font-mono mt-0.5">Asigna acceso activo y contraseña</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setIsCreatingStudent(false); setCreateMsg(null); }}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Cerrar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Status Message */}
+              {createMsg && (
+                <div className={`p-4 mb-6 rounded-2xl border ${createMsg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-300'}`}>
+                  <div className="font-bold text-sm flex items-center gap-2">
+                    {createMsg.type === 'success' ? '✅' : '❌'} {createMsg.text}
+                  </div>
+                  {createMsg.details && (
+                    <div className="mt-3 p-3 bg-black/50 rounded-xl border border-emerald-500/20 text-xs font-mono space-y-1.5">
+                      <div className="text-white/70">Nombre: <span className="text-white font-bold">{createMsg.details.name}</span></div>
+                      <div className="text-white/70">Correo: <span className="text-emerald-400 font-bold">{createMsg.details.email}</span></div>
+                      <div className="text-white/70">Contraseña: <span className="text-emerald-400 font-bold">{createMsg.details.pass}</span></div>
+                      <button
+                        type="button"
+                        onClick={() => copyCredentials(createMsg.details!)}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        {copiedCreds ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        <span>{copiedCreds ? '¡Copiado al portapapeles!' : 'Copiar mensaje para WhatsApp'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={handleCreateStudent} className="space-y-4">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/50 block mb-1">Nombre Completo</label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Ej. Juan Carlos Pérez"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors placeholder:text-white/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/50 block mb-1">
+                    Correo Electrónico (Login) <span className="text-purple-400">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="alumno@ejemplo.com"
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors placeholder:text-white/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/50 block mb-1">Profesión u Ocupación (Opcional)</label>
+                  <input
+                    type="text"
+                    value={newProfession}
+                    onChange={(e) => setNewProfession(e.target.value)}
+                    placeholder="Ej. Odontólogo, Trader, Comerciante..."
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors placeholder:text-white/20"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] uppercase font-bold text-white/50">
+                      Contraseña Asignada <span className="text-purple-400">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateRandomPassword}
+                      className="text-[10px] text-purple-400 hover:text-purple-300 font-bold uppercase tracking-wider flex items-center gap-1 hover:underline cursor-pointer"
+                    >
+                      <Sparkles size={11} /> Generar contraseña
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showNewPass ? "text" : "password"}
+                      required
+                      value={newPass}
+                      onChange={(e) => setNewPass(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="w-full bg-black/50 border border-white/10 rounded-xl pl-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors font-mono placeholder:text-white/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white cursor-pointer"
+                    >
+                      {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={createLoading}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-black uppercase tracking-widest text-xs rounded-xl transition-all shadow-lg shadow-purple-500/25 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {createLoading ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Creando Alumno...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus size={14} />
+                        <span>Crear Alumno</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsCreatingStudent(false); setCreateMsg(null); }}
+                    className="px-5 py-3 border border-white/10 hover:bg-white/5 text-white/60 hover:text-white font-bold uppercase tracking-widest text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
