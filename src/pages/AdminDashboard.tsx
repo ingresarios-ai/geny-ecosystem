@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
-import { User, Shield, Activity, RefreshCw, Edit3, Trash2, Globe2, Eye, EyeOff, LogOut, ArrowLeft, UserPlus, TrendingUp, TrendingDown, BarChart3, PieChart, Users, Crown } from "lucide-react";
+import { User, Shield, Activity, RefreshCw, Edit3, Trash2, Globe2, Eye, EyeOff, LogOut, ArrowLeft, UserPlus, TrendingUp, TrendingDown, BarChart3, PieChart, Users, Crown, Search, X } from "lucide-react";
 import AdminAuth from "./AdminAuth";
 
 const BrandLogo = ({ align = "left" }: { align?: "left" | "right" | "center" }) => {
@@ -52,6 +52,8 @@ export default function AdminDashboard() {
   const [editMode, setEditMode] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [activeTab, setActiveTab] = useState<'analytics' | 'students' | 'admins'>('analytics');
+  const [studentSearch, setStudentSearch] = useState("");
+  const [rankingSearch, setRankingSearch] = useState("");
 
   // Edit User State
   const [editName, setEditName] = useState("");
@@ -109,6 +111,16 @@ export default function AdminDashboard() {
   const adminUsers = useMemo(() => users.filter(u => u.role === 'admin'), [users]);
   const studentUsers = useMemo(() => users.filter(u => u.role !== 'admin'), [users]);
 
+  const filteredStudents = useMemo(() => {
+    if (!studentSearch.trim()) return studentUsers;
+    const q = studentSearch.toLowerCase().trim();
+    return studentUsers.filter(u =>
+      (u.full_name && u.full_name.toLowerCase().includes(q)) ||
+      (u.email && u.email.toLowerCase().includes(q)) ||
+      (u.profession && u.profession.toLowerCase().includes(q))
+    );
+  }, [studentUsers, studentSearch]);
+
   const globalAnalytics = useMemo(() => {
     const totalWins = entries.filter(e => e.amount > 0).reduce((s, e) => s + Number(e.amount), 0);
     const totalLosses = entries.filter(e => e.amount < 0).reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
@@ -133,6 +145,12 @@ export default function AdminDashboard() {
       return { id: u.id, name: u.full_name || u.email?.split('@')[0] || 'N/A', wins, losses, net, trades: userE.length };
     }).filter(s => s.trades > 0).sort((a, b) => b.net - a.net);
   }, [studentUsers, entries]);
+
+  const filteredRanking = useMemo(() => {
+    if (!rankingSearch.trim()) return studentPerformance;
+    const q = rankingSearch.toLowerCase().trim();
+    return studentPerformance.filter(s => s.name.toLowerCase().includes(q));
+  }, [studentPerformance, rankingSearch]);
 
   // Monthly data for chart
   const monthlyData = useMemo(() => {
@@ -465,10 +483,31 @@ export default function AdminDashboard() {
 
             {/* Student Ranking Table */}
             <div className="glass-panel p-6 rounded-2xl border border-white/10">
-              <h3 className="text-xs font-black uppercase tracking-widest text-white/50 mb-6 flex items-center gap-2">
-                <Users size={14} className="text-purple-400"/> Ranking de Alumnos por Rendimiento Neto
-              </h3>
-              {studentPerformance.length > 0 ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <h3 className="text-xs font-black uppercase tracking-widest text-white/50 flex items-center gap-2">
+                  <Users size={14} className="text-purple-400"/> Ranking de Alumnos por Rendimiento Neto
+                </h3>
+                <div className="relative min-w-[200px]">
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30" />
+                  <input
+                    type="text"
+                    value={rankingSearch}
+                    onChange={(e) => setRankingSearch(e.target.value)}
+                    placeholder="Filtrar por alumno..."
+                    className="w-full bg-black/40 border border-white/10 rounded-lg pl-8 pr-7 py-1 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-purple-500/50"
+                  />
+                  {rankingSearch && (
+                    <button
+                      onClick={() => setRankingSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                      title="Limpiar filtro"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {filteredRanking.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -482,7 +521,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {studentPerformance.map((s, i) => (
+                      {filteredRanking.map((s, i) => (
                         <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="py-2.5 px-2 text-white/30 font-mono">{i + 1}</td>
                           <td className="py-2.5 px-2 font-bold text-white truncate max-w-[150px]">{s.name}</td>
@@ -497,7 +536,7 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="h-32 flex items-center justify-center text-white/20 text-xs uppercase tracking-widest font-mono">
-                  Los alumnos aún no han registrado operaciones
+                  {rankingSearch ? `No se encontraron resultados para "${rankingSearch}"` : "Los alumnos aún no han registrado operaciones"}
                 </div>
               )}
             </div>
@@ -512,12 +551,38 @@ export default function AdminDashboard() {
             
             {/* STUDENT LIST */}
             <div className="lg:col-span-4 flex flex-col gap-4">
-               <div className="glass-panel p-5 rounded-2xl border border-white/5 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                  <h2 className="text-xs font-black uppercase tracking-widest text-white/50 mb-4 flex items-center gap-2">
-                     <User size={14} className="text-purple-400"/> ALUMNOS ({studentUsers.length})
-                  </h2>
-                  <div className="space-y-2">
-                     {studentUsers.map(u => (
+               <div className="glass-panel p-5 rounded-2xl border border-white/5 max-h-[75vh] flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                     <h2 className="text-xs font-black uppercase tracking-widest text-white/50 flex items-center gap-2">
+                        <User size={14} className="text-purple-400"/> ALUMNOS
+                     </h2>
+                     <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                        {filteredStudents.length} {studentSearch ? `de ${studentUsers.length}` : 'totales'}
+                     </span>
+                  </div>
+
+                  {/* Buscador de usuarios */}
+                  <div className="relative mb-3">
+                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                     <input
+                        type="text"
+                        value={studentSearch}
+                        onChange={(e) => setStudentSearch(e.target.value)}
+                        placeholder="Buscar por nombre, correo..."
+                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-purple-500/50 transition-colors"
+                     />
+                     {studentSearch && (
+                        <button
+                           onClick={() => setStudentSearch("")}
+                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1"
+                           title="Limpiar búsqueda"
+                        >
+                           <X size={13} />
+                        </button>
+                     )}
+                  </div>
+                  <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                     {filteredStudents.map(u => (
                        <div 
                          key={u.id} 
                          onClick={() => handleSelectUser(u)}
@@ -534,8 +599,23 @@ export default function AdminDashboard() {
                          </div>
                        </div>
                      ))}
-                     {studentUsers.length === 0 && (
-                       <div className="text-center text-white/20 text-xs py-8 font-mono uppercase tracking-widest">Sin alumnos registrados</div>
+                     {filteredStudents.length === 0 && (
+                       <div className="text-center text-white/30 text-xs py-8 font-mono">
+                         {studentSearch ? (
+                           <>
+                             <div>No se encontraron alumnos para</div>
+                             <div className="text-purple-400 font-bold mt-1">"{studentSearch}"</div>
+                             <button
+                               onClick={() => setStudentSearch("")}
+                               className="mt-3 text-[10px] text-white/50 hover:text-white underline uppercase tracking-widest"
+                             >
+                               Limpiar búsqueda
+                             </button>
+                           </>
+                         ) : (
+                           "Sin alumnos registrados"
+                         )}
+                       </div>
                      )}
                   </div>
                </div>
