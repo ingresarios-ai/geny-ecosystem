@@ -223,14 +223,18 @@ export default function AdminDashboard() {
       const token = sessionData.session?.access_token || "";
 
       const url = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const res = await fetch(`${url}/functions/v1/admin-users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "apikey": anonKey,
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+          "x-api-key": "ingresarios2024"
         },
         body: JSON.stringify({
           action: "create_user",
+          admin_secret: "ingresarios2024",
           payload: {
             full_name: newName.trim(),
             email: newEmail.trim().toLowerCase(),
@@ -297,14 +301,18 @@ export default function AdminDashboard() {
       }
 
       const url = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const res = await fetch(`${url}/functions/v1/admin-users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "apikey": anonKey,
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+          "x-api-key": "ingresarios2024"
         },
         body: JSON.stringify({
           action: "update_user",
+          admin_secret: "ingresarios2024",
           targetUserId: selectedUser.id,
           payload
         })
