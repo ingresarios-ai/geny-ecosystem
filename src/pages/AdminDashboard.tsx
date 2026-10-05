@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<'analytics' | 'students' | 'admins'>('analytics');
   const [studentSearch, setStudentSearch] = useState("");
   const [rankingSearch, setRankingSearch] = useState("");
@@ -183,6 +185,7 @@ export default function AdminDashboard() {
     setSelectedUser(u);
     setEditMode(false);
     setConfirmReset(false);
+    setConfirmDelete(false);
     setActionMsg("");
   };
 
@@ -346,6 +349,55 @@ export default function AdminDashboard() {
     } catch(e: any) {
       setActionMsg(`❌ Error: ${e.message}`);
     }
+  };
+
+  const handleDeleteStudent = async () => {
+    if (!selectedUser) return;
+    const me = JSON.parse(localStorage.getItem("cobro-user") || "{}");
+    if (selectedUser.id === me.id) {
+      setActionMsg("⚠️ No puedes eliminar tu propia cuenta.");
+      setConfirmDelete(false);
+      return;
+    }
+    setDeleting(true);
+    setActionMsg("Eliminando alumno...");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token || "";
+      const url = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // Limpiar datos asociados primero
+      await supabase.from("entries").delete().eq("user_id", selectedUser.id);
+      await supabase.from("posicionamiento_data").delete().eq("user_id", selectedUser.id);
+
+      const res = await fetch(`${url}/functions/v1/admin-users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": anonKey,
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+          "x-api-key": "ingresarios2024"
+        },
+        body: JSON.stringify({
+          action: "delete_user",
+          admin_secret: "ingresarios2024",
+          targetUserId: selectedUser.id
+        })
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "No se pudo eliminar el alumno");
+
+      await supabase.from("profiles").delete().eq("id", selectedUser.id);
+
+      setConfirmDelete(false);
+      setSelectedUser(null);
+      setActionMsg("");
+      loadData();
+    } catch (err: any) {
+      setActionMsg(`❌ Error: ${err.message}`);
+    }
+    setDeleting(false);
   };
 
   const handleAddAdmin = async () => {
@@ -762,6 +814,8 @@ export default function AdminDashboard() {
                                <Edit3 size={14}/> Editar Entorno
                             </button>
                           )}
+
+
                        </div>
                        
                        <h2 className="text-2xl font-black text-white">{selectedUser.full_name || "Sin Nombre"}</h2>
@@ -908,6 +962,24 @@ export default function AdminDashboard() {
                              </button>
                            </div>
                          )}
+
+                          <div className="mt-5 pt-4 border-t border-red-500/20">
+                            <p className="text-[10px] text-white/50 mb-3">Eliminar alumno borra su cuenta, acceso y todos sus datos de forma permanente. Esta acción no se puede deshacer.</p>
+                            {!confirmDelete ? (
+                              <button onClick={() => setConfirmDelete(true)} className="px-4 py-2 border border-red-500/50 text-red-400 hover:bg-red-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest rounded flex justify-center items-center gap-2">
+                                <Trash2 size={14}/> Eliminar Alumno
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <button disabled={deleting} onClick={handleDeleteStudent} className="px-4 py-2 bg-red-600 text-white font-black uppercase tracking-widest text-xs rounded transition-colors flex flex-1 justify-center items-center disabled:opacity-50">
+                                  {deleting ? "Eliminando..." : "Confirmar Eliminación Permanente"}
+                                </button>
+                                <button disabled={deleting} onClick={() => setConfirmDelete(false)} className="px-4 py-2 border border-white/20 text-white/70 hover:bg-white/10 font-bold uppercase tracking-widest text-xs rounded transition-colors">
+                                  Cancelar
+                                </button>
+                              </div>
+                            )}
+                          </div>
                       </div>
                     )}
                  </div>
